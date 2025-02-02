@@ -78,6 +78,34 @@ class InputProcessor:
                     script.decompose()
                 return soup.get_text()
             
+class WebLoader: 
+    def fetch_url(url:str) -> Document: 
+        """Fetch and process content from a URL."""
+        try: 
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            #Remove script and style elements 
+
+            for script in soup(["script", "style"]): 
+                script.decompose()
+
+            return Document(
+                content = soup.get_text(),
+                metadata = {
+                    'url': url, 
+                    'title': soup.title.string if soup.title else None, 
+                    'content_type': response.headers.get('content-type'), 
+                    'last-modified': response.headers.get('last-modified')
+                }, 
+                doc_id = f"web_{hash(url)}_{int(datetime.now().timestamp())}", 
+                source_path = url, 
+                timestamp = datetime.now() 
+            )                
+            
+        except Exception as e: 
+            raise Exception(f"Error fetchign the URL {url}: {str(e)}")
 
 
         
