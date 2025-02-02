@@ -51,6 +51,34 @@ class InputProcessor:
             timestamp = datetime.now()
         )
 
-    
+    def _extract_content(self, file_path: Path) -> str:
+        """
+        Extracts content from a file based on its extension.
+        
+        Args:
+            file_path: Path to the file to extract content from
+            
+        """
+        if file_path.suffix == '.txt' or file_path.suffix == '.md': 
+            return file_path.read_text(encoding='utf-8')
+        
+        elif file_path.suffix == '.pdf': 
+            text = []
+            with fitz.open(file_path) as pdf: 
+                for page in pdf: 
+                    text.append(page.get_text())
+            return '\n'.join(text)
+
+        elif file_path.suffix == '.html': 
+            with open(file_path, 'r', encoding = 'utf-8') as f: 
+                soup = BeautifulSoup(f, 'html.parser')
+                #Remove script and style elements 
+
+                for script in soup(["script", "style"]): 
+                    script.decompose()
+                return soup.get_text()
+            
+
+
         
         
