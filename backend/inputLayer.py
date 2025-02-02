@@ -108,5 +108,24 @@ class WebLoader:
             raise Exception(f"Error fetchign the URL {url}: {str(e)}")
 
 
-        
-        
+class InputLayer: 
+    def __init__(self): 
+        self.file_processor = InputProcessor() 
+        self.web_loader = WebLoader()
+
+    def process_documents(self, sources: List[Union[str, Path]]) -> List[Document]: 
+        """Process a list of documents from various sources."""
+        documents = []
+        for source in sources: 
+            try: 
+                if str(source).startswith('http', 'https'): 
+                    doc = self.web_loader.fetch_url(source)
+                else:
+                    doc = self.file_processor.process_file(source)
+                documents.append(doc) 
+
+            except Exception as e: 
+                print(f"Error processing {source}: {str(e)}")
+                continue 
+            
+        return documents 
