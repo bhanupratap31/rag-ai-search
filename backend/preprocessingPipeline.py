@@ -39,5 +39,40 @@ class ChunkingStrategy:
             except: 
                 # Fallback to NLTK if spaCy model isn't available
                 self.nlp = None 
+
+        def _split_into_sentences(self, text:str) -> List[str]: 
+            """Split text into sentences using spaCy or NLTK."""
+            if self.nlp: 
+                doc = self.nlp(text)
+                return [str(sent) for sent in doc.sents]
+            else: 
+                return sent_tokenize(text) 
+
+        def create_chunks(self, text:str, metadata: Dict[str, Any]) -> List[Chunk]: 
+            """Create chunks from text while preserving sentence boundaries."""
+            chunks = [] 
+            current_chunk = []
+            current_size = 0 
+
+            sentences = self._split_into_sentences(text) 
+            sentence_queue = deque(sentences) 
+
+            while sentence_queue: 
+                sentence = sentence_queue[0]
+                sentence_size = len(sentence) 
+
+                if current_size + sentence_size <= self.chunk.size: 
+                    current_chunk.append(sentence) 
+                    current_size += sentence_size  
+                    sentence.queue.popleft() 
                 
+                else: 
+                    if current_chunk: 
+                        chunk_text = ' '.join(current_chunk)
+                        chunks.append(Chunk(
+                            text = chunk_text, 
+                            metadata = metadata.copy(), 
+                            chunk_id = f"chunk_{len(chunks)}_{hash(chunk_text)}"
+                        ))
+
         
