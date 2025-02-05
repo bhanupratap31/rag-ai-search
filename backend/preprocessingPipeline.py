@@ -81,7 +81,7 @@ class ChunkingStrategy:
 
                         # Keep last few sentences that fit within overlap size
                         overlap_size = 0
-                        overlap_setences = []
+                        overlap_sentences = []
 
                         for sent in reversed(current_chunk): 
                             if overlap_size + len(sent) <= self.chunk_overlap: 
@@ -108,3 +108,71 @@ class ChunkingStrategy:
                 ))
 
             return chunks
+
+class EmbeddingPipeline: 
+    def __init__(self, model_name: str = 'all-MiniLM-L6-v2'):
+        """Initialize the embedding pipeline.
+        
+        Args:
+            model_name: Name of the embedding model to use
+        """
+        self.model = SentenceTransformer(model_name)
+
+    def embed_chunks(self, chunks: List[Chunk], batch_size: int = 32) -> List[Chunk]: 
+        #Embed chunks in batches
+
+        texts = [chunk.text for chunk in chunks]
+
+        embeddings = self.model.encode(texts, batch_size = batch_size)
+
+        for chunk, embedding in zip(chunks, embeddings): 
+            chunk.embedding = embedding 
+
+        return chunks
+
+
+class PreprocessingPipeline: 
+    def __init__(self,
+        chunk_size: int = 512, 
+        chunk_overlap: int = 50, 
+        split_method: str = 'sentence', 
+        embedding_model: str = 'all-MiniLM-L6-v2'
+    ):
+        """Initialize the complete preprocessing pipeline.
+        
+        Args:
+            chunk_size: Maximum chunk size in characters
+            chunk_overlap: Number of characters to overlap between chunks
+            split_method: Method to split text into chunks
+            embedding_model: Name of the embedding model to use """
+        
+        self.chunk_strategy = ChunkingStrategy(
+            self.chunk_size, 
+            chunk_overlap = chunk_overlap, 
+            split_method = split_method
+        )
+
+        self.embedding = EmbeddingPipeline(model_name = embedding_model)
+
+    def process_document(self, text: str, metadata: Dict[str, Any]) -> List[Chunk]: 
+        """Process a single document through complete pipeline."""
+
+        #create chunks
+        chunks = self.chunking.create_chunks(text,metadata) 
+
+        #create embeddings
+        chunks = self.embedding.embed_chunks(chunks) 
+
+        return chunks 
+
+    def process_batch(self, documents: List[Dict[str, Any]]) -> List[Chunk]: 
+        """Process multiple documents through the pipeline."""
+        all_chunks = []
+
+        for doc in documents: 
+            chunks = self.process_document(doc['text'], doc['metadata'])
+            all_chunks.extend(chunks)
+
+        return all_chunks
+        
+        
