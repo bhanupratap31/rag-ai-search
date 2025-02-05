@@ -67,12 +67,44 @@ class ChunkingStrategy:
                     sentence.queue.popleft() 
                 
                 else: 
-                    if current_chunk: 
+                    if current_chunk: # Save current chunk if it's not empty
                         chunk_text = ' '.join(current_chunk)
                         chunks.append(Chunk(
                             text = chunk_text, 
                             metadata = metadata.copy(), 
                             chunk_id = f"chunk_{len(chunks)}_{hash(chunk_text)}"
                         ))
+                    
+                    # Start new chunk with overlap
 
-        
+                    if self.chunk_overlap > 0: 
+
+                        # Keep last few sentences that fit within overlap size
+                        overlap_size = 0
+                        overlap_setences = []
+
+                        for sent in reversed(current_chunk): 
+                            if overlap_size + len(sent) <= self.chunk_overlap: 
+                                overlap_sentences.insert(0, sent)
+                                overlap_size += len(sent)
+                            else: 
+                                break 
+
+                        current_chunk = overlap_sentences
+                        current_size = overlap_size
+
+                    else:
+                        current_chunk =[]
+                        current_size = 0
+
+            # Add final chunk if there's anything left
+
+            if current_chunk: 
+                chunk_text = ' '.join(current_chunk)
+                chunks.append(Chunk(
+                    text = chunk_text, 
+                    metadata = metadata.copy(), 
+                    chunk_id = f"chunk_{len(chunks)}_{hash(chunk_text)}"
+                ))
+
+            return chunks
